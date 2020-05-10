@@ -1,0 +1,23 @@
+version: '3'
+services:
+  database:
+    image: timescale/timescaledb:latest-pg12
+    ports: ['5432:5432']
+    environment:
+      POSTGRES_USER: "ivar"
+      POSTGRES_DB: "ivarvidfamne"
+      POSTGRES_PASSWORD: ${VIDFAMNE_DB_PASS}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ivar -d ${VIDFAMNE_DB_PASS}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./docker/volumes/timescaledb:/var/lib/postgresql/data/ # persist data even if container shuts down
+  migrate:
+    image: openpitrix/flyway
+    command: -url=jdbc:postgresql://database:5432/ivarvidfamne -user=ivar -password=${VIDFAMNE_DB_PASS} -connectRetries=60 migrate
+    volumes:
+      - ./migrations:/flyway/sql
+    depends_on:
+      - database
